@@ -13,7 +13,7 @@ class Event:
             any raw python object
         """
         self.source = source
-        self.uid = " ".join((source, uid))
+        self.uid = ":".join((source, uid))
         self.pure_uid = uid
         self.short = short
         if not full:

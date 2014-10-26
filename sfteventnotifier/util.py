@@ -46,6 +46,50 @@ def run_task(f, default, timeout=30, capture_output=True, *args, **kwargs):
     return result, oc.output
 
 
+def multiprocessed(function):
+    """
+    decorator to run a generator function inside a different process.
+    yielded objects must be pickle-able.
+
+    example:
+
+    @multiprocessed
+    def f():
+        import os
+        yield os.getpid()
+
+    print(os.getpid())
+    for pid in f():
+        print(pid)
+
+    > prints different PIDs
+    """
+
+    def inner(*args):
+        from multiprocessing import Process, Queue
+
+        def generatortoqueue(function, args, q):
+            for e in function(*args):
+                q.put(e)
+
+            q.put(None)
+
+        q = Queue()
+        p = Process(target=generatortoqueue, args=(function, args, q))
+        p.start()
+        while True:
+            e = q.get()
+
+            if e is None:
+                break
+
+            yield e
+
+        p.join()
+
+    return inner
+
+
 class DummyContextManager:
     """
     for use with a 'with' statement

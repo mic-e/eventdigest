@@ -1,23 +1,47 @@
-import signal
+import sys
+import traceback
+import collections
+import re
 import tempfile
 import os
-import re
-import collections
+import signal
 import sqlite3
 
 
-class TaskFailureError(Exception):
-    pass
+def run_task(f, default, timeout=30, capture_output=True, *args, **kwargs):
+    """
+    executes f(*args, **kwargs)
 
+    if timeout is not None, the task is aborted after the given number of
+    seconds.
 
-def run_task(f, timeout=30, capture_output=True, *args, **kwargs):
-    oc = OutputCapture() if capture_output else DummyContextManager(output="")
-    try:
-        with oc:
-            with Timeout(timeout) if timeout else DummyContextManager():
+    if capture_output is True, the task's stdout/stderr are captured to a
+    variable.
+
+    if the task fails due to an Exception (including a timeout), default is
+    given as the task's result, and the exception traceback is appended
+    to the task's output.
+
+    a tuple of (task result, task output) is returned. if capture_output was
+    False, task output is "".
+    """
+    if capture_output:
+        oc = OutputCapture()
+    else:
+        oc = DummyContextManager(output="")
+
+    if timeout is not None:
+        tm = Timeout(timeout)
+    else:
+        tm = DummyContextManager()
+
+    with oc:
+        try:
+            with tm:
                 result = f(*args, **kwargs)
-    except Exception as e:
-        raise TaskFailureError(oc.output) from e
+        except:
+            traceback.print_exc()
+            result = default
 
     return result, oc.output
 

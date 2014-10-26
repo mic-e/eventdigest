@@ -2,12 +2,15 @@
 
 
 def main():
-    exec(open('cfg').read(), globals())
+    # import all event yielders that the cfg may use
+    from .hbci import query_bank
 
-    from .hbci import get_transactions
-    for e in get_transactions(bank_code, account_number, uname, pin):
-        print(e)
-        # print(e.raw)
+    for call in open('cfg').read().split('\n'):
+        if not call.strip() or call.strip().startswith('#'):
+            continue
+
+        for e in eval(call):
+            print(e.full)
 
 if __name__ == '__main__':
     main()

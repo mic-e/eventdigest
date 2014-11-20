@@ -326,3 +326,14 @@ class PersistentSet(AbstractSQLContainer, collections.MutableSet):
             repr(self._database_filename),
             repr(self._table_name),
             repr(set(self)))
+
+
+def sanitize_markdown(s):
+    def yielder(s):
+        for c in s:
+            if c not in '\'"()[]<>':
+                yield c
+            else:
+                yield ' '
+
+    return ''.join(yielder(s))

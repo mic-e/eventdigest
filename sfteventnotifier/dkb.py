@@ -5,6 +5,7 @@ import hashlib
 import traceback
 from .event import Event
 from subprocess import Popen, TimeoutExpired, PIPE
+from .util import sanitize_markdown
 
 
 def parse(csvlines):
@@ -99,9 +100,10 @@ def query_dkb_visa(username, cc, pin):
             source=eventsource,
             uid="dkb-visa:fetchfail:{}:{}".format(now, cc),
             short="failure while fetching CSV",
-            full="could not fetch CSV: return code = " +
-                 str(proc.returncode) +
-                 "\n    " + "\n    ".join(stderr.split('\n')))
+            full=sanitize_markdown(
+                "could not fetch CSV: return code = " +
+                str(proc.returncode) +
+                "\n    " + "\n    ".join(stderr.split('\n'))))
         return
 
     if not stdout.strip():
@@ -109,8 +111,9 @@ def query_dkb_visa(username, cc, pin):
             source=eventsource,
             uid="dkb-visa:fetchfail:{}:{}".format(now, cc),
             short="failure while fetching CSV",
-            full="could not fetch CSV:" +
-                 "\n    " + "\n    ".join(stderr.split('\n')))
+            full=sanitize_markdown(
+                "could not fetch CSV:" +
+                "\n    " + "\n    ".join(stderr.split('\n'))))
         return
 
     csvlines = stdout.split('\n')
@@ -122,8 +125,9 @@ def query_dkb_visa(username, cc, pin):
             source=eventsource,
             uid="dkb-visa:parsefail:{}:{}".format(now, cc),
             short="failure while parsing CSV",
-            full="could not parse CSV:" +
-                 "\n    " + "\n    ".join(traceback.format_exc().split('\n')))
+            full=sanitize_markdown(
+                "could not parse CSV:" +
+                "\n    " + "\n    ".join(traceback.format_exc().split('\n'))))
         return
 
     for value, currency, date, purpose, uid in transactions:
@@ -137,7 +141,7 @@ def query_dkb_visa(username, cc, pin):
         yield Event(
             source=eventsource,
             uid=uid,
-            short=short)
+            short=sanitize_markdown(short))
 
     yield Event(
         source=eventsource,

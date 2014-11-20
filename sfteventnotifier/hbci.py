@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import os
 import tempfile
 import sys
-from .util import run_task, multiprocessed
+from .util import run_task, multiprocessed, sanitize_markdown
 from .event import Event
 from collections import defaultdict
 
@@ -75,22 +75,23 @@ def query_bank(bank_code, account_numbers, uname, pin):
             events[date].append(Event(
                 source=eventsource,
                 uid=uid,
-                short=short,
+                short=sanitize_markdown(short),
                 raw=transaction))
     else:
         events[now].append(Event(
             source=eventsource,
             uid="fetchfail:transactions:{}".format(now),
             short="could not fetch transactions",
-            full="could not fetch transactions:\n\n    {}\n".format(
-                 "\n    ".join(transactions_output.split('\n')))))
+            full=sanitize_markdown(
+                "could not fetch transactions:\n" +
+                "\n    \n" + "\n    ".join(transactions_output.split('\n')))))
 
     if balances:
         maxaccountwidth = max(len(a) for a in account_numbers)
         for i, b in enumerate(balances):
             balance = b['booked_balance']
             account_number = account_numbers[i]
-            short="balance for {:>{}}: {:8.2f}".format(
+            short = "balance for {:>{}}: {:8.2f}".format(
                 account_number,
                 maxaccountwidth,
                 balance)
@@ -98,15 +99,16 @@ def query_bank(bank_code, account_numbers, uname, pin):
             events[now].append(Event(
                 source=eventsource,
                 uid="balance:{}:{}:{}".format(now, balance, account_number),
-                short=short,
+                short=sanitize_markdown(short),
                 raw=b))
     else:
         events[now].append(Event(
             source=eventsource,
             uid="fetchfail:balances:{}".format(now),
             short="could not fetch balances",
-            full="could not fetch balances:\n\n    {}\n".format(
-                "\n    ".join(balances_output.split('\n')))))
+            full=sanitize_markdown(
+                "could not fetch balances:\n" +
+                "\n    " + "\n    ".join(balances_output.split('\n')))))
 
     for date, eventlist in sorted(events.items()):
         for event in eventlist:

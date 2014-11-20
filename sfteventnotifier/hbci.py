@@ -13,7 +13,7 @@ from collections import defaultdict
 # by running a fork befor each independent use of aqbanking functionality,
 # we avoid this.
 @multiprocessed
-def query_bank(bank_code, account_number, uname, pin):
+def query_bank(bank_code, account_numbers, uname, pin):
     """
     yields transaction and balance events for accounts that are configured
     in aqbanking (e.g. using GnuCash)
@@ -31,14 +31,17 @@ def query_bank(bank_code, account_number, uname, pin):
     pin_value = pin
     config_dir = os.path.expanduser('~/.aqbanking')
     bank_code = str(bank_code)
-    account_numbers = str(account_number).split(',')
+    if not isinstance(account_numbers, tuple):
+        account_numbers = (account_numbers,)
+
+    account_numbers = list(map(str, account_numbers))
 
     rq = aqbanking.BankingRequestor(
-        pin_name=pin_name.encode(),
-        pin_value=pin_value.encode(),
-        config_dir=config_dir.encode(),
-        bank_code=bank_code.encode(),
-        account_numbers=[an.encode() for an in account_numbers])
+        pin_name=pin_name,
+        pin_value=pin_value,
+        config_dir=config_dir,
+        bank_code=bank_code,
+        account_numbers=account_numbers)
 
     transactions, transactions_output = run_task(
         rq.request_transactions,
@@ -55,9 +58,9 @@ def query_bank(bank_code, account_number, uname, pin):
     if transactions:
         for transaction in transactions:
             uid = transaction['ui']
-            currency = transaction['value_currency'].decode()
+            currency = transaction['value_currency']
             value = transaction.get('value', 0)
-            account = transaction['local_account_number'].decode()
+            account = transaction['local_account_number']
             type_ = transaction['transaction_text']
             date = transaction['valuta_date']
             purpose = transaction.get('purpose', '')
@@ -80,7 +83,7 @@ def query_bank(bank_code, account_number, uname, pin):
             uid="fetchfail:transactions:{}".format(now),
             short="could not fetch transactions",
             full="could not fetch transactions:\n\n    {}\n".format(
-                "\n    ".join(transactions_output.split('\n')))))
+                 "\n    ".join(transactions_output.split('\n')))))
 
     if balances:
         maxaccountwidth = max(len(a) for a in account_numbers)

@@ -46,6 +46,15 @@ def run_task(f, default, timeout=30, capture_output=True, *args, **kwargs):
     return result, oc.output
 
 
+class SubProcessException(Exception):
+    """
+    raised whenever a @multiprocessed function raises an exception
+    contains the original exception's traceback as its second arg.
+    """
+    def __init__(self, arg):
+        super().__init__(arg)
+
+
 def multiprocessed(function):
     """
     decorator to run a generator function inside a different process.
@@ -69,23 +78,34 @@ def multiprocessed(function):
         from multiprocessing import Process, Queue
 
         def generatortoqueue(function, args, q):
-            for e in function(*args):
-                q.put(e)
+            try:
+                for e in function(*args):
+                    q.put(e)
+            except:
+                q.put(SubProcessException(traceback.format_exc()))
 
             q.put(None)
 
         q = Queue()
         p = Process(target=generatortoqueue, args=(function, args, q))
         p.start()
+        exception = None
+
         while True:
             e = q.get()
 
             if e is None:
                 break
 
-            yield e
+            if isinstance(e, SubProcessException):
+                exception = e
+            else:
+                yield e
 
         p.join()
+
+        if exception:
+            raise exception
 
     return inner
 

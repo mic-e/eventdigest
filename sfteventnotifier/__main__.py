@@ -11,8 +11,11 @@ def main():
         if not call.strip() or call.strip().startswith('#'):
             continue
 
-        for e in eval(call):
-            print(e.full)
+        try:
+            for e in eval(call):
+                print(e.full)
+        except Exception as e:
+            raise Exception("uncaught exception during " + call) from e
 
 if __name__ == '__main__':
     main()

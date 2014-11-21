@@ -5,7 +5,6 @@ import hashlib
 import traceback
 from .event import Event
 from subprocess import Popen, TimeoutExpired, PIPE
-from .util import sanitize_markdown
 
 
 def parse(csvlines):
@@ -100,10 +99,9 @@ def query_dkb_visa(username, cc, pin):
             source=eventsource,
             uid="dkb-visa:fetchfail:{}:{}".format(now, cc),
             short="failure while fetching CSV",
-            full=sanitize_markdown(
-                "could not fetch CSV: return code = " +
-                str(proc.returncode) +
-                "\n    " + "\n    ".join(stderr.split('\n'))))
+            full="could not fetch CSV: return code = " +
+                 str(proc.returncode) +
+                 "\n    " + "\n    ".join(stderr.split('\n')))
         return
 
     if not stdout.strip():
@@ -111,9 +109,8 @@ def query_dkb_visa(username, cc, pin):
             source=eventsource,
             uid="dkb-visa:fetchfail:{}:{}".format(now, cc),
             short="failure while fetching CSV",
-            full=sanitize_markdown(
-                "could not fetch CSV:" +
-                "\n    " + "\n    ".join(stderr.split('\n'))))
+            full="could not fetch CSV:" +
+                 "\n    " + "\n    ".join(stderr.split('\n')))
         return
 
     csvlines = stdout.split('\n')
@@ -125,9 +122,8 @@ def query_dkb_visa(username, cc, pin):
             source=eventsource,
             uid="dkb-visa:parsefail:{}:{}".format(now, cc),
             short="failure while parsing CSV",
-            full=sanitize_markdown(
-                "could not parse CSV:" +
-                "\n    " + "\n    ".join(traceback.format_exc().split('\n'))))
+            full="could not parse CSV:" +
+                 "\n    " + "\n    ".join(traceback.format_exc().split('\n')))
         return
 
     for value, currency, date, purpose, uid in transactions:
@@ -141,9 +137,9 @@ def query_dkb_visa(username, cc, pin):
         yield Event(
             source=eventsource,
             uid=uid,
-            short=sanitize_markdown(short))
+            short=short)
 
     yield Event(
         source=eventsource,
         uid="dkb-visa:balance:{}:{}:{}".format(now, balance, cc),
-        short="balance for DKB VISA {}: {:8.2f}".format(cc, balance))
+        short="balance for  VISA {}: {:8.2f}".format(cc, balance))

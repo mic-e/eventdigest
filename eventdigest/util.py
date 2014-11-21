@@ -6,6 +6,10 @@ import tempfile
 import os
 import signal
 import sqlite3
+import uuid
+
+
+cfgpath = os.environ['HOME'] + '/.eventdigest'
 
 
 def run_task(f, default, timeout=30, capture_output=True, *args, **kwargs):
@@ -190,9 +194,9 @@ class Timeout:
 class AbstractSQLContainer:
     _allowed_coltypes = {"UNIQUE", }
 
-    def __init__(self, database_filename, table_name, *cols):
+    def __init__(self, database_filename, table, *cols):
         # sanitize inputs that will be passed as SQL commands
-        self._sanitize_string(table_name, "table name")
+        self._sanitize_string(table, "table name")
         for col in cols:
             col = col.split(' ')
             self._sanitize_string(col[0], "column name")
@@ -201,7 +205,7 @@ class AbstractSQLContainer:
                     raise ValueError("invalid column type: {}".format(coltype))
 
         self._database_filename = database_filename
-        self._table_name = table_name
+        self._table_name = table
 
         self._conn = sqlite3.connect(database_filename)
         self._execute(
@@ -225,10 +229,10 @@ class AbstractSQLContainer:
 
 
 class PersistentDict(AbstractSQLContainer, collections.MutableMapping):
-    def __init__(self, database_filename, table_name='persistentdict',
-                 mapping={}):
+    def __init__(self, database_filename=cfgpath + '/sqlite',
+                 table='persistentdict', mapping={}):
 
-        AbstractSQLContainer.__init__(self, database_filename, table_name,
+        AbstractSQLContainer.__init__(self, database_filename, table,
                                       "key UNIQUE", "val")
 
         self.update(mapping)
@@ -281,10 +285,10 @@ class PersistentDict(AbstractSQLContainer, collections.MutableMapping):
 
 
 class PersistentSet(AbstractSQLContainer, collections.MutableSet):
-    def __init__(self, database_filename, table_name='persistentset',
-                 collection=set()):
+    def __init__(self, database_filename=cfgpath + '/sqlite',
+                 table='persistentset', collection=set()):
 
-        AbstractSQLContainer.__init__(self, database_filename, table_name,
+        AbstractSQLContainer.__init__(self, database_filename, table,
                                       "elem UNIQUE")
 
         for x in collection:
@@ -327,13 +331,27 @@ class PersistentSet(AbstractSQLContainer, collections.MutableSet):
             repr(self._table_name),
             repr(set(self)))
 
+redirects = PersistentDict(table="shortener")
+reverseredirects = PersistentDict(table="reverseshortener")
 
-def sanitize_markdown(s):
-    def yielder(s):
-        for c in s:
-            if c not in '\'"()[]<>':
-                yield c
-            else:
-                yield ' '
 
-    return ''.join(yielder(s))
+def shorten(url, length=8):
+    if url in reverseredirects:
+        return reverseredirects[url]
+
+    errors = 0
+    while True:
+        short = uuid.uuid4().hex[:length]
+        if short in redirects:
+            errors += 1
+            if errors > 16:
+                # wow.
+                # such foresight.
+                # much hypothetical.
+                errors = 0
+                length += 1
+            continue
+
+        redirects[short] = url
+        reverseredirects[url] = short
+        return short

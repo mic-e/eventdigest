@@ -1,9 +1,8 @@
-from datetime import datetime
 import re
 import csv
 import hashlib
 import traceback
-from .event import Event
+from .event import Event, EventSource
 from subprocess import Popen, TimeoutExpired, PIPE
 
 
@@ -66,7 +65,6 @@ def query_dkb_visa(username, cc, pin):
     @param cc:
         last 4 digits of credit card number
     """
-    now = datetime.now()
     cc = str(cc)
 
     # dkbfetcher is a modified version of https://github.com/hoffie/dkb-visa,
@@ -80,25 +78,19 @@ def query_dkb_visa(username, cc, pin):
 
     proc = Popen(invocation, stdout=PIPE, stderr=PIPE, stdin=PIPE)
 
-    eventsource = "DKB VISA " + cc
+    yield EventSource("DKB VISA " + cc)
 
     try:
         stdout, stderr = proc.communicate(input=pin.encode(), timeout=30)
     except TimeoutExpired:
-        yield Event(
-            source=eventsource,
-            uid="dkb-visa:timeout:{}:{}".format(now, cc),
-            short="timeout while fetching CSV")
+        yield Event("timeout while fetching CSV")
         return
 
     stdout = stdout.decode('iso-8859-1', errors='replace')
     stderr = stderr.decode('utf-8', errors='replace')
 
     if proc.returncode != 0:
-        yield Event(
-            source=eventsource,
-            uid="dkb-visa:fetchfail:{}:{}".format(now, cc),
-            short="failure while fetching CSV",
+        yield Event("failure while fetching CSV",
             full="could not fetch CSV: return code = " +
                  str(proc.returncode) +
                  "\n    " + "\n    ".join(stderr.split('\n')))
@@ -106,8 +98,6 @@ def query_dkb_visa(username, cc, pin):
 
     if not stdout.strip():
         yield Event(
-            source=eventsource,
-            uid="dkb-visa:fetchfail:{}:{}".format(now, cc),
             short="failure while fetching CSV",
             full="could not fetch CSV:" +
                  "\n    " + "\n    ".join(stderr.split('\n')))
@@ -119,8 +109,6 @@ def query_dkb_visa(username, cc, pin):
         balance, transactions = parse(csvlines)
     except:
         yield Event(
-            source=eventsource,
-            uid="dkb-visa:parsefail:{}:{}".format(now, cc),
             short="failure while parsing CSV",
             full="could not parse CSV:" +
                  "\n    " + "\n    ".join(traceback.format_exc().split('\n')))
@@ -134,12 +122,6 @@ def query_dkb_visa(username, cc, pin):
             date,
             purpose)
 
-        yield Event(
-            source=eventsource,
-            uid=uid,
-            short=short)
+        yield Event(uid=uid, short=short)
 
-    yield Event(
-        source=eventsource,
-        uid="dkb-visa:balance:{}:{}:{}".format(now, balance, cc),
-        short="balance for  VISA {}: {:8.2f}".format(cc, balance))
+    yield Event(short="balance for  VISA {}: {:8.2f}".format(cc, balance))

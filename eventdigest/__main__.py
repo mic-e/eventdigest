@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from .util import PersistentDict, cfgpath
+from .event import Event, EventSource
 from .mail import mail_self
 from datetime import datetime
 now = datetime.now()
@@ -21,7 +22,7 @@ def main():
 
         try:
             for e in eval(call):
-                if e.uid in sentevents:
+                if isinstance(e, Event) and e.uid and e.uid in sentevents:
                     continue
 
                 newevents.append(e)
@@ -33,11 +34,11 @@ def main():
     body = []
     currentsource = None
     for e in newevents:
-        if e.source != currentsource:
-            currentsource = e.source
+        if isinstance(e, EventSource):
+            currentsource = e.name
             body.append(currentsource + "\n|\n")
-
-        body[-1] += "| " + '\n| '.join(e.full.split('\n')) + "\n"
+        else:
+            body[-1] += "| " + '\n| '.join(e.full.split('\n')) + "\n"
 
     body = '\n'.join(body)
 
@@ -48,7 +49,8 @@ def main():
     mail_self(subject, body)
 
     for e in newevents:
-        sentevents[e.uid] = str(now)
+        if e.uid:
+            sentevents[e.uid] = str(now)
 
 
 if __name__ == '__main__':

@@ -1,13 +1,11 @@
-from .event import Event
+from .event import Event, EventSource
 from .util import shorten
 import feedparser
-from datetime import datetime
 import traceback
 
 
 def query_feed(name, url, formatstring='{shortlink} {title}', limit=None):
-    eventsource = name
-    now = datetime.now()
+    yield EventSource(name)
 
     try:
         feed = feedparser.parse(url)
@@ -17,8 +15,6 @@ def query_feed(name, url, formatstring='{shortlink} {title}', limit=None):
 
     except:
         yield Event(
-            source=eventsource,
-            uid='feed-fetchfail-' + url + '-' + str(now),
             short="failure while fetching feed",
             full="could not fetch feed:" +
                  "\n    " + "\n    ".join(traceback.format_exc().split('\n')))
@@ -54,7 +50,6 @@ def query_feed(name, url, formatstring='{shortlink} {title}', limit=None):
             shortlink=shortlink)
 
         yield Event(
-            source=eventsource,
             uid=uid,
             short=short,
             raw=entry)

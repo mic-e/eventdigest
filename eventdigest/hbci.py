@@ -3,7 +3,7 @@ import os
 import tempfile
 import sys
 from .util import run_task, multiprocessed
-from .event import Event
+from .event import Event, EventSource
 from collections import defaultdict
 
 
@@ -25,7 +25,7 @@ def query_bank(bank_code, account_numbers, uname, pin):
 
     now = datetime.now()
 
-    eventsource = "HBCI %s" % bank_code
+    yield EventSource("HBCI %s" % bank_code)
 
     pin_name = "PIN_%d_%s" % (bank_code, uname)
     pin_value = pin
@@ -73,14 +73,11 @@ def query_bank(bank_code, account_numbers, uname, pin):
                 purpose)
 
             events[date].append(Event(
-                source=eventsource,
                 uid=uid,
                 short=short,
                 raw=transaction))
     else:
         events[now].append(Event(
-            source=eventsource,
-            uid="fetchfail:transactions:{}".format(now),
             short="could not fetch transactions",
             full="could not fetch transactions:\n" +
                  "\n    " + "\n    ".join(transactions_output.split('\n'))))
@@ -95,15 +92,9 @@ def query_bank(bank_code, account_numbers, uname, pin):
                 maxaccountwidth,
                 balance)
 
-            events[now].append(Event(
-                source=eventsource,
-                uid="balance:{}:{}:{}".format(now, balance, account_number),
-                short=short,
-                raw=b))
+            events[now].append(Event(short=short, raw=b))
     else:
         events[now].append(Event(
-            source=eventsource,
-            uid="fetchfail:balances:{}".format(now),
             short="could not fetch balances",
             full="could not fetch balances:\n" +
                  "\n    " + "\n    ".join(balances_output.split('\n'))))

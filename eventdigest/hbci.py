@@ -99,6 +99,6 @@ def query_bank(bank_code, account_numbers, uname, pin):
             full="could not fetch balances:\n" +
                  "\n    " + "\n    ".join(balances_output.split('\n'))))
 
-    for date, eventlist in sorted(events.items()):
+    for date, eventlist in reversed(sorted(events.items())):
         for event in eventlist:
             yield event

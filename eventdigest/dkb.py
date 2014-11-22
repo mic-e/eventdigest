@@ -99,6 +99,8 @@ def query_dkb_visa(username, cc, pin):
 
     balance, transactions = parse(csvlines)
 
+    yield Event("balance for  VISA {}: {:8.2f}".format(cc, balance))
+
     for value, currency, date, purpose, uid in transactions:
         text = "{:<16} {:8.2f} {:>3} {} {}".format(
             "CC-Transaction",
@@ -108,5 +110,3 @@ def query_dkb_visa(username, cc, pin):
             purpose)
 
         yield Event(uid=uid, text=text)
-
-    yield Event("balance for  VISA {}: {:8.2f}".format(cc, balance))

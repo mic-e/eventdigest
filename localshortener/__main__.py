@@ -1,7 +1,6 @@
 import flask
-from eventdigest.util import PersistentDict
+from eventdigest.util import redirects
 
-redirects = PersistentDict(table="shortener")
 site = flask.Flask("shortener")
 
 

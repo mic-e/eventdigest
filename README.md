@@ -4,7 +4,7 @@ Depends
 -------
 
  - [My patched version](https://github.com/mic-e/python-aqbanking) of [python-aqbanking](https://github.com/emdete/python-aqbanking), installed via `python3 setup.py install`
- - [My patched version](https://github.com/mic-e/dkb-visa/) of [the dkb visa QIF exporter](https://github.com/hoffie/dkb-visa), installed to `/usr/local/bin/dkbfetcher`
+ - [The dkb visa QIF exporter](https://github.com/hoffie/dkb-visa), installed to `/usr/local/bin/dkbfetcher`
 
 Configuration
 -------------

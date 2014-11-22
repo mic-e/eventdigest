@@ -32,12 +32,13 @@ def main():
     # create the email
     subject = "digest " + str(now)
     body = []
-    currentsource = None
     for e in newevents:
         if isinstance(e, EventSource):
-            currentsource = e.name
-            body.append(currentsource + "\n|\n")
+            title = e.name + "\n|\n"
         else:
+            if title:
+                body.append(title)
+                title = None
             body[-1] += "| " + '\n| '.join(e.full.split('\n')) + "\n"
 
     body = '\n'.join(body)
@@ -49,7 +50,7 @@ def main():
     mail_self(subject, body)
 
     for e in newevents:
-        if e.uid:
+        if isinstance(e, Event) and e.uid:
             sentevents[e.uid] = str(now)
 
 

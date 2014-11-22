@@ -7,19 +7,10 @@ import traceback
 def query_feed(name, url, formatstring='{shortlink} {title}', limit=None):
     yield EventSource(name)
 
-    try:
-        feed = feedparser.parse(url)
+    feed = feedparser.parse(url)
 
-        if feed['status'] != 200:
-            raise Exception('status != 200')
-
-    except:
-        yield Event(
-            short="failure while fetching feed",
-            full="could not fetch feed:" +
-                 "\n    " + "\n    ".join(traceback.format_exc().split('\n')))
-
-        return
+    if feed['status'] != 200:
+        raise Exception('status != 200')
 
     entries = feed['entries']
     if limit:
@@ -40,16 +31,8 @@ def query_feed(name, url, formatstring='{shortlink} {title}', limit=None):
         except:
             uid = link
 
-        uid = 'feed-' + url + '-' + uid
-
-        shortlink = 'http://l:8080/' + shorten(link)
-
-        short = formatstring.format(
-            title=title,
-            link=link,
-            shortlink=shortlink)
-
         yield Event(
-            uid=uid,
-            short=short,
-            raw=entry)
+            formatstring.format(title=title,
+                                link=link,
+                                shortlink='http://l:8080/' + shorten(link)),
+            uid='feed-'+ url + '-' + uid)

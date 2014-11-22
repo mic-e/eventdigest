@@ -80,48 +80,33 @@ def query_dkb_visa(username, cc, pin):
 
     yield EventSource("DKB VISA " + cc)
 
-    try:
-        stdout, stderr = proc.communicate(input=pin.encode(), timeout=30)
-    except TimeoutExpired:
-        yield Event("timeout while fetching CSV")
-        return
+    stdout, stderr = proc.communicate(input=pin.encode(), timeout=30)
 
     stdout = stdout.decode('iso-8859-1', errors='replace')
     stderr = stderr.decode('utf-8', errors='replace')
 
     if proc.returncode != 0:
-        yield Event("failure while fetching CSV",
-            full="could not fetch CSV: return code = " +
-                 str(proc.returncode) +
-                 "\n    " + "\n    ".join(stderr.split('\n')))
-        return
+        raise Exception(
+            "could not fetch CSV; return code: {}\n".format(proc.returncode) +
+            "\n    " + "\n    ".join(stderr.split('\n')))
 
     if not stdout.strip():
-        yield Event(
-            short="failure while fetching CSV",
-            full="could not fetch CSV:" +
-                 "\n    " + "\n    ".join(stderr.split('\n')))
-        return
+        raise Exception(
+            "could nto fetch CSV\n" +
+            "\n    " + "\n    ".join(stderr.split('\n')))
 
     csvlines = stdout.split('\n')
 
-    try:
-        balance, transactions = parse(csvlines)
-    except:
-        yield Event(
-            short="failure while parsing CSV",
-            full="could not parse CSV:" +
-                 "\n    " + "\n    ".join(traceback.format_exc().split('\n')))
-        return
+    balance, transactions = parse(csvlines)
 
     for value, currency, date, purpose, uid in transactions:
-        short = "{:<16} {:8.2f} {:>3} {} {}".format(
+        text = "{:<16} {:8.2f} {:>3} {} {}".format(
             "CC-Transaction",
             value,
             currency,
             date,
             purpose)
 
-        yield Event(uid=uid, short=short)
+        yield Event(uid=uid, text=text)
 
-    yield Event(short="balance for  VISA {}: {:8.2f}".format(cc, balance))
+    yield Event("balance for  VISA {}: {:8.2f}".format(cc, balance))

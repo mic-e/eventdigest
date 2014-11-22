@@ -65,39 +65,32 @@ def query_bank(bank_code, account_numbers, uname, pin):
             date = transaction['valuta_date']
             purpose = transaction.get('purpose', '')
 
-            short = "{:<16} {:8.2f} {:>3} {} {}".format(
+            text = "{:<16} {:8.2f} {:>3} {} {}".format(
                 type_,
                 value,
                 currency,
                 str(date.date()),
                 purpose)
 
-            events[date].append(Event(
-                uid=uid,
-                short=short,
-                raw=transaction))
+            events[date].append(Event(uid=uid, text=text))
     else:
-        events[now].append(Event(
-            short="could not fetch transactions",
-            full="could not fetch transactions:\n" +
-                 "\n    " + "\n    ".join(transactions_output.split('\n'))))
+        raise Exception("could not fetch transactions:\n\n    " +
+                        "\n    ".join(transactions_output.split('\n')))
 
     if balances:
         maxaccountwidth = max(len(a) for a in account_numbers)
         for i, b in enumerate(balances):
             balance = b['booked_balance']
             account_number = account_numbers[i]
-            short = "balance for {:>{}}: {:8.2f}".format(
+            text= "balance for {:>{}}: {:8.2f}".format(
                 account_number,
                 maxaccountwidth,
                 balance)
 
-            events[now].append(Event(short=short, raw=b))
+            events[now].append(Event(text=text, raw=b))
     else:
-        events[now].append(Event(
-            short="could not fetch balances",
-            full="could not fetch balances:\n" +
-                 "\n    " + "\n    ".join(balances_output.split('\n'))))
+        raise Exception("could not fetch balances:\n\n    " +
+                        "\n    ".join(balances_output.split('\n')))
 
     for date, eventlist in reversed(sorted(events.items())):
         for event in eventlist:

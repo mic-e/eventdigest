@@ -3,6 +3,7 @@ from .util import PersistentDict, cfgpath
 from .event import Event, EventSource
 from .mail import mail_self
 from datetime import datetime
+import traceback
 now = datetime.now()
 import os
 
@@ -26,8 +27,9 @@ def main():
                     continue
 
                 newevents.append(e)
-        except Exception as e:
-            raise Exception("uncaught exception during " + call) from e
+        except:
+            newevents.append(Event("exception in " + call + "\n" +
+                                   traceback.format_exc()))
 
     # create the email
     subject = "digest " + str(now)
@@ -39,7 +41,7 @@ def main():
             if title:
                 body.append(title)
                 title = None
-            body[-1] += "| " + '\n| '.join(e.full.split('\n')) + "\n"
+            body[-1] += "| " + '\n| '.join(e.text.split('\n')) + "\n"
 
     body = '\n'.join(body)
 

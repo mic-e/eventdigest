@@ -3,6 +3,7 @@ import csv
 import hashlib
 import traceback
 from .event import Event, EventSource
+from .util import indent
 from subprocess import Popen, TimeoutExpired, PIPE
 
 
@@ -86,23 +87,20 @@ def query_dkb_visa(username, cc, pin):
     stderr = stderr.decode('utf-8', errors='replace')
 
     if proc.returncode != 0:
-        raise Exception(
-            "could not fetch CSV; return code: {}\n".format(proc.returncode) +
-            "\n    " + "\n    ".join(stderr.split('\n')))
+        raise Exception("could not fetch CSV; return code: {}\n{}".format(
+            proc.returncode, indent(stderr)))
 
     if not stdout.strip():
-        raise Exception(
-            "could nto fetch CSV\n" +
-            "\n    " + "\n    ".join(stderr.split('\n')))
+        raise Exception("could nto fetch CSV\n" + indent(stderr))
 
     csvlines = stdout.split('\n')
 
     balance, transactions = parse(csvlines)
 
-    yield Event("balance for  VISA {}: {:8.2f}".format(cc, balance))
+    yield Event("balance {:21.2f} EUR".format(balance))
 
     for value, currency, date, purpose, uid in transactions:
-        text = "{:<16} {:8.2f} {:>3} {} {}".format(
+        text = "{:<20} {:8.2f} {:>3} {} \0{}".format(
             "CC-Transaction",
             value,
             currency,

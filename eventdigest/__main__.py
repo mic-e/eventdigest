@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from .util import PersistentDict, cfgpath
+from .util import PersistentDict, cfgpath, indent, wrap
 from .event import Event, EventSource
 from .mail import mail_self
 from datetime import datetime
@@ -16,6 +16,9 @@ def main():
 
     sentevents = PersistentDict(table='events')
     newevents = []
+
+    # read passwords
+    exec(open(cfgpath + '/secrets').read())
 
     for call in open(cfgpath + '/cfg').read().split('\n'):
         if not call.strip() or call.strip().startswith('#'):
@@ -41,7 +44,7 @@ def main():
             if title:
                 body.append(title)
                 title = None
-            body[-1] += "| " + '\n| '.join(e.text.split('\n')) + "\n"
+            body[-1] += indent(wrap(e.text), "| ") + "\n"
 
     body = '\n'.join(body)
 

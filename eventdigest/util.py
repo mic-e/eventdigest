@@ -355,3 +355,33 @@ def shorten(url, length=8):
         redirects[short] = url
         reverseredirects[url] = short
         return short
+
+
+def indent(text, indentwith='\t'):
+    return indentwith + ('\n' + indentwith).join(text.strip().split('\n'))
+
+
+def wrap(text, maxwidth=200):
+    import textwrap
+
+    result = []
+    for line in text.split('\n'):
+        breakpos = line.find('\0')
+        if breakpos < 0:
+            line = '\0' + line
+            breakpos = 0
+
+        unbroken = line[:breakpos]
+        broken = line[breakpos + 1:]
+
+        wrapped = textwrap.wrap(broken,
+                                width=max(20, maxwidth - len(unbroken)),
+                                initial_indent=unbroken,
+                                subsequent_indent=' ' * breakpos)
+
+        if not wrapped:
+            wrapped = [unbroken + broken]
+
+        result.append('\n'.join(wrapped).rstrip())
+
+    return '\n'.join(result)

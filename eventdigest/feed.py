@@ -35,4 +35,4 @@ def query_feed(name, url, formatstring='{shortlink} {title}', limit=None):
             formatstring.format(title=title,
                                 link=link,
                                 shortlink='http://l:8080/' + shorten(link)),
-            uid='feed-'+ url + '-' + uid)
+            uid='feed-' + url + '-' + uid)

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import os
 import tempfile
 import sys
-from .util import run_task, multiprocessed
+from .util import run_task, multiprocessed, indent
 from .event import Event, EventSource
 from collections import defaultdict
 
@@ -52,45 +52,44 @@ def query_bank(bank_code, account_numbers, uname, pin):
         to_time=now,
     )
 
+    if not transactions:
+        raise Exception("could not fetch transactions:\n\n" +
+                        indent(transactions_output))
+
     balances, balances_output = run_task(rq.request_balances, [], 10, True)
 
     events = defaultdict(lambda: [])
-    if transactions:
-        for transaction in transactions:
-            uid = transaction['ui']
-            currency = transaction['value_currency']
-            value = transaction.get('value', 0)
-            account = transaction['local_account_number']
-            type_ = transaction['transaction_text']
-            date = transaction['valuta_date']
-            purpose = transaction.get('purpose', '')
 
-            text = "{:<16} {:8.2f} {:>3} {} {}".format(
-                type_,
-                value,
-                currency,
-                str(date.date()),
-                purpose)
+    if not balances:
+        raise Exception("could not fetch balances:\n\n" +
+                        indent(balances_output))
 
-            events[date].append(Event(uid=uid, text=text))
-    else:
-        raise Exception("could not fetch transactions:\n\n    " +
-                        "\n    ".join(transactions_output.split('\n')))
+    for transaction in transactions:
+        uid = transaction['ui']
+        currency = transaction['value_currency']
+        value = transaction.get('value', 0)
+        account = transaction['local_account_number']
+        type_ = transaction['transaction_text']
+        date = transaction['valuta_date']
+        purpose = transaction.get('purpose', '')
 
-    if balances:
-        maxaccountwidth = max(len(a) for a in account_numbers)
-        for i, b in enumerate(balances):
-            balance = b['booked_balance']
-            account_number = account_numbers[i]
-            text= "balance for {:>{}}: {:8.2f}".format(
-                account_number,
-                maxaccountwidth,
-                balance)
+        text = "{:<20} {:8.2f} {:>3} {} \0{}".format(
+            type_,
+            value,
+            currency,
+            str(date.date()),
+            purpose)
 
-            events[now].append(Event(text=text, raw=b))
-    else:
-        raise Exception("could not fetch balances:\n\n    " +
-                        "\n    ".join(balances_output.split('\n')))
+        events[date].append(Event(uid=uid, text=text))
+
+    for i, b in enumerate(balances):
+        balance = b['booked_balance']
+        account_number = account_numbers[i]
+        text = "balance {:>12} {:8.2f} EUR".format(
+            account_number,
+            balance)
+
+        events[now].append(Event(text))
 
     for date, eventlist in reversed(sorted(events.items())):
         for event in eventlist:
